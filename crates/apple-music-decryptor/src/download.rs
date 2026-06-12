@@ -214,7 +214,24 @@ fn download_playback_once(
         .transpose()?;
 
     let native = session.native();
-    let mut contexts = HashMap::new();
+
+    // Match the original wrapper's decrypt initialization sequence:
+    // 1. Reset all existing contexts in the native singleton
+    // 2. Pre-build the preshare context (P000000000/s1/e1) with adam="0"
+    //    This gets its own kd_context_slot and kd_context pointer.
+    // 3. For segments using the P000000000 init key, use the PRESHARE
+    //    context (not a per-song one). For content key segments, build
+    //    a new context with the actual song adam ID.
+    // This avoids the singleton corruption because the preshare context
+    // occupies a different slot than per-song content key contexts.
+    native.reset_all_contexts();
+    let preshare_uri = "skd://itunes.apple.com/P000000000/s1/e1".to_string();
+    let mut preshare_ctx = native.build_context(&ContextKey {
+        adam: "0".into(),
+        uri: preshare_uri.clone(),
+    })?;
+
+    let mut content_ctx = None;
 
     for segment in playlist.segments {
         let fragment = download_range(&client, &segment.uri, segment.offset, segment.length)?;
@@ -228,17 +245,18 @@ fn download_playback_once(
         }
 
         let sample_slices = mp4::collect_sample_slices(&fragment)?;
-        let context_key = segment.key_uri.clone();
-        if !contexts.contains_key(&context_key) {
-            let context = native.build_context(&ContextKey {
-                adam: song_id.clone(),
-                uri: context_key.clone(),
-            })?;
-            contexts.insert(context_key.clone(), context);
-        }
-        let context = contexts
-            .get_mut(&context_key)
-            .ok_or_else(|| AppError::Message("decrypt context was not retained".into()))?;
+
+        let context = if segment.key_uri == preshare_uri {
+            &mut preshare_ctx
+        } else {
+            if content_ctx.is_none() {
+                content_ctx = Some(native.build_context(&ContextKey {
+                    adam: song_id.clone(),
+                    uri: segment.key_uri.clone(),
+                })?);
+            }
+            content_ctx.as_mut().unwrap()
+        };
 
         let mut fragment_out = fragment.clone();
         for sample_slice in sample_slices {

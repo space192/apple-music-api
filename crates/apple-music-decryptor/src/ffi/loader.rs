@@ -77,6 +77,7 @@ type FnSessionCtrlGetPersistentKey = unsafe extern "C" fn(
     *const StdString,
 );
 type FnSessionCtrlDecryptContext = unsafe extern "C" fn(*mut SharedPtr, *mut c_void, *mut c_void);
+type FnSessionCtrlResetAllContexts = unsafe extern "C" fn(*mut c_void);
 type FnPContextKdContext = unsafe extern "C" fn(*mut c_void) -> *mut *mut c_void;
 type FnSharedPtrPContextDrop = unsafe extern "C" fn(*mut SharedPtr);
 type FnDecryptSample =
@@ -172,6 +173,7 @@ pub struct NativeSymbols {
     pub session_ctrl_instance: FnSessionCtrlInstance,
     pub session_ctrl_get_persistent_key: FnSessionCtrlGetPersistentKey,
     pub session_ctrl_decrypt_context: FnSessionCtrlDecryptContext,
+    pub session_ctrl_reset_all_contexts: FnSessionCtrlResetAllContexts,
     pub pcontext_kd_context: FnPContextKdContext,
     pub shared_ptr_pcontext_drop: FnSharedPtrPContextDrop,
     pub decrypt_sample: FnDecryptSample,
@@ -455,6 +457,10 @@ impl NativeSymbols {
             session_ctrl_decrypt_context: load_symbol!(
                 "_ZN21SVFootHillSessionCtrl14decryptContextERKNSt6__ndk112basic_stringIcNS0_11char_traitsIcEENS0_9allocatorIcEEEERKN11SVDecryptor15SVDecryptorTypeERKb",
                 FnSessionCtrlDecryptContext
+            ),
+            session_ctrl_reset_all_contexts: load_symbol!(
+                "_ZN21SVFootHillSessionCtrl16resetAllContextsEv",
+                FnSessionCtrlResetAllContexts
             ),
             pcontext_kd_context: load_symbol!(
                 "_ZNK18SVFootHillPContext9kdContextEv",

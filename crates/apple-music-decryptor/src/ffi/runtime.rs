@@ -630,6 +630,15 @@ impl NativeSession {
         })
     }
 
+    pub fn reset_all_contexts(&self) {
+        crate::app_info!("ffi::session", "resetting all decrypt contexts");
+        let _guard = self.session_lock.lock().expect("session lock poisoned");
+        unsafe {
+            (self.symbols.session_ctrl_reset_all_contexts)(self.session_ctrl);
+        }
+        crate::app_info!("ffi::session", "all decrypt contexts reset");
+    }
+
     pub fn build_context(&self, key: &ContextKey) -> AppResult<PContextHandle> {
         crate::app_info!(
             "ffi::session",

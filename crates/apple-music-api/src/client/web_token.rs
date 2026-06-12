@@ -13,7 +13,7 @@ static INDEX_JS_REGEX: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r#"/assets/index~[^/"']+\.js"#).expect("index js regex should compile")
 });
 static WEB_TOKEN_REGEX: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r#"eyJh[^"']*"#).expect("web token regex should compile"));
+    LazyLock::new(|| Regex::new(r#"eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+"#).expect("web token regex should compile"));
 
 pub(super) struct WebTokenCacheEntry {
     pub(super) token: String,
